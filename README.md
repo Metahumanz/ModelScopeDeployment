@@ -1,13 +1,15 @@
 # 大语言模型部署体验与横向对比实验
 
+公开仓库：[Metahumanz/ModelScopeDeployment](https://github.com/Metahumanz/ModelScopeDeployment)
+
 ## 快速开始
 
 在 ModelScope Notebook 的 Terminal 中执行：
 
 ```bash
 cd /mnt/workspace
-git clone https://github.com/<your-name>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/Metahumanz/ModelScopeDeployment.git
+cd ModelScopeDeployment
 bash setup_modelscope.sh
 bash run_tests.sh
 ```

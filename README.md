@@ -18,25 +18,24 @@ bash run_tests.sh
 
 ## 默认测试
 
-默认运行 5 个适合 CPU 环境的小模型：
+默认运行 4 个适合 CPU 环境的小模型：
 
 - `qwen/Qwen2.5-0.5B-Instruct`
 - `qwen/Qwen2-0.5B-Instruct`
 - `qwen/Qwen1.5-0.5B-Chat`
 - `qwen/Qwen2.5-1.5B-Instruct`
-- `Shanghai_AI_Laboratory/internlm2-chat-1_8b-sft`
 
-默认每题最多生成 32 个 token，使用 `float32` 在 CPU 上加载模型，并边生成边打印答案。
+默认每题最多生成 1024 个 token，使用 `float32` 在 CPU 上加载模型，并边生成边打印答案。
 
 ```bash
-MAX_NEW_TOKENS=32 bash run_tests.sh
+MAX_NEW_TOKENS=1024 bash run_tests.sh
 ```
 
 ## 常用参数
 
 ```bash
 QUESTIONS_FILE=prompts/semantic_understanding.json bash run_tests.sh
-MAX_NEW_TOKENS=32 bash run_tests.sh
+MAX_NEW_TOKENS=1024 bash run_tests.sh
 TORCH_DTYPE=float32 bash run_tests.sh
 TORCH_NUM_THREADS=4 bash run_tests.sh
 MODELSCOPE_CACHE_DIR=/mnt/workspace/.cache/modelscope bash run_tests.sh
@@ -67,4 +66,6 @@ prompts/semantic_understanding.json
 
 ```text
 report.md
+reports/report.docx
+reports/report.pdf
 ```

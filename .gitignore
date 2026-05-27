@@ -5,6 +5,11 @@ __pycache__/
 .venv/
 venv/
 
+# Temporary render/build artifacts
+tmp*/
+*.tmp
+~$*.docx
+
 # Local environment
 .env
 .env.*

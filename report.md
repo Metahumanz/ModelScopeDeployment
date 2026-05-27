@@ -4,7 +4,7 @@
 
 本项目用于课程第 3 次作业：在 ModelScope Notebook 环境中完成大语言模型部署体验、中文语义理解问答测试和模型横向对比。公开仓库用于保存实验脚本、测试问题、运行结果和报告内容。
 
-项目不提供长期在线推理服务。ModelScope 免费 Notebook 实例存在运行时长和资源限制，更适合作为模型部署和短时测试环境。本实验优先选择 0.5B 到 1.8B 的小模型，避免在 CPU 环境中长时间等待。
+项目不提供长期在线推理服务。ModelScope 免费 Notebook 实例存在运行时长和资源限制，更适合作为模型部署和短时测试环境。本实验优先选择 0.5B 到 1.5B 的小模型，避免在 CPU 环境中长时间等待。
 
 ## 二、实验环境
 
@@ -17,7 +17,7 @@
 | 主要依赖 | modelscope、transformers、accelerate、sentencepiece、tiktoken、einops |
 | 运行方式 | CPU 推理 |
 
-本项目在 CPU 环境中默认使用 `float32` 加载模型，将每题默认生成长度控制在 32 个 token，并开启流式输出，以减少等待时间。
+本项目在 CPU 环境中默认使用 `float32` 加载模型，并开启流式输出，便于观察生成过程。
 
 ## 三、部署流程
 
@@ -45,7 +45,7 @@ bash setup_modelscope.sh
 bash run_tests.sh
 ```
 
-默认会运行 5 个适合 CPU 环境的小模型：
+默认会运行 4 个适合 CPU 环境的小模型：
 
 | 模型 | 参数规模 | 选择原因 |
 | --- | ---: | --- |
@@ -53,9 +53,8 @@ bash run_tests.sh
 | Qwen2-0.5B-Instruct | 0.5B | Qwen2 小模型，可观察代际差异 |
 | Qwen1.5-0.5B-Chat | 0.5B | 更早版本 Qwen 小模型，可作为旧版对照 |
 | Qwen2.5-1.5B-Instruct | 1.5B | 中文能力通常更稳定，仍可在 CPU 环境中尝试 |
-| InternLM2-Chat-1.8B-SFT | 1.8B | 另一个国产小模型，用于扩展横向比较 |
 
-默认每题最多生成 32 个 token。如果希望更快完成测试，可以执行：
+默认每题最多生成 1024 个 token。如果希望更快完成测试，可以执行：
 
 ```bash
 MAX_NEW_TOKENS=16 bash run_tests.sh
@@ -86,6 +85,12 @@ results/<label>/results.md
 results/<label>/results.json
 ```
 
+测试截图统一保存到：
+
+```text
+assets/screenshots/
+```
+
 默认标签包括：
 
 | 标签 | 模型 |
@@ -94,13 +99,12 @@ results/<label>/results.json
 | `qwen2-0.5b` | `qwen/Qwen2-0.5B-Instruct` |
 | `qwen1.5-0.5b` | `qwen/Qwen1.5-0.5B-Chat` |
 | `qwen2.5-1.5b` | `qwen/Qwen2.5-1.5B-Instruct` |
-| `internlm2-chat-1.8b-sft` | `Shanghai_AI_Laboratory/internlm2-chat-1_8b-sft` |
 
 ## 七、横向对比记录表
 
 完成测试后，可按下表整理结果：
 
-| 维度 | Qwen2.5-0.5B | Qwen2 / Qwen1.5 0.5B | Qwen2.5-1.5B / InternLM2-1.8B |
+| 维度 | Qwen2.5-0.5B | Qwen2 / Qwen1.5 0.5B | Qwen2.5-1.5B |
 | --- | --- | --- | --- |
 | 部署难度 | 待填写 | 待填写 | 待填写 |
 | CPU 推理速度 | 待填写 | 待填写 | 待填写 |
@@ -124,7 +128,7 @@ results/<label>/results.json
 综合部署成本、运行速度和中文语义理解能力，可以从以下角度撰写结论：
 
 - 0.5B 模型更适合免费 CPU 环境快速跑通部署流程和完成截图。
-- Qwen2.5-1.5B-Instruct 和 InternLM2-Chat-1.8B-SFT 通常回答更完整，但推理速度会慢于 0.5B 模型。
+- Qwen2.5-1.5B-Instruct 通常回答更完整，但推理速度会慢于 0.5B 模型。
 - 在免费 CPU Notebook 环境中，小模型更适合完成课程实验和横向比较。
 
 最终报告中需要补充公开仓库链接，并根据 `results/` 中的输出结果填写对比分析。

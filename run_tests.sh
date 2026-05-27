@@ -15,7 +15,7 @@ Usage:
 
 Optional environment variables:
   QUESTIONS_FILE=path       Question JSON file. Default: prompts/semantic_understanding.json
-  MAX_NEW_TOKENS=number     Max generated tokens per answer. Default: 32
+  MAX_NEW_TOKENS=number     Max generated tokens per answer. Default: 1024
   TEMPERATURE=number        Sampling temperature. Default: 0 for faster greedy decoding.
   TOP_P=number              Top-p sampling value. Default: 0.9
   TORCH_DTYPE=value         auto, float32, bfloat16, or float16. Default: float32
@@ -42,7 +42,6 @@ tests=(
   "qwen/Qwen2-0.5B-Instruct|qwen2-0.5b|$MAX_NEW_TOKENS"
   "qwen/Qwen1.5-0.5B-Chat|qwen1.5-0.5b|$MAX_NEW_TOKENS"
   "qwen/Qwen2.5-1.5B-Instruct|qwen2.5-1.5b|$MAX_NEW_TOKENS"
-  "Shanghai_AI_Laboratory/internlm2-chat-1_8b-sft|internlm2-chat-1.8b-sft|$MAX_NEW_TOKENS"
 )
 
 echo "[tests] This script runs all configured model evaluations."

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 QUESTIONS_FILE="${QUESTIONS_FILE:-prompts/semantic_understanding.json}"
-MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-32}"
+MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-128}"
 TEMPERATURE="${TEMPERATURE:-0}"
 TOP_P="${TOP_P:-0.9}"
 TORCH_DTYPE="${TORCH_DTYPE:-float32}"

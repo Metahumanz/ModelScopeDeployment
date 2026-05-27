@@ -4,7 +4,7 @@
 
 本项目用于课程第 3 次作业：在 ModelScope Notebook 环境中完成大语言模型部署体验、中文语义理解问答测试和模型横向对比。公开仓库用于保存实验脚本、测试问题、运行结果和报告内容。
 
-项目不提供长期在线推理服务。ModelScope 免费 Notebook 实例存在运行时长和资源限制，更适合作为模型部署和短时测试环境。
+项目不提供长期在线推理服务。ModelScope 免费 Notebook 实例存在运行时长和资源限制，更适合作为模型部署和短时测试环境。本实验优先选择 0.5B 到 1.8B 的小模型，避免在 CPU 环境中长时间等待。
 
 ## 二、实验环境
 
@@ -16,6 +16,8 @@
 | PyTorch | 2.3.1 |
 | 主要依赖 | modelscope、transformers、accelerate、sentencepiece、tiktoken、einops |
 | 运行方式 | CPU 推理 |
+
+本项目将 `transformers` 固定到兼容 ModelScope `torch2.3.1` 镜像的版本，以提高复现实验时的稳定性。
 
 ## 三、部署流程
 
@@ -43,28 +45,21 @@ bash setup_modelscope.sh
 bash run_tests.sh
 ```
 
-默认会运行两个适合 CPU 环境的轻量模型：
+默认会运行 5 个适合 CPU 环境的小模型：
 
 | 模型 | 参数规模 | 选择原因 |
 | --- | ---: | --- |
-| Qwen2.5-0.5B-Instruct | 0.5B | 下载和推理成本低，适合先完成部署验证 |
+| Qwen2.5-0.5B-Instruct | 0.5B | 最新 Qwen2.5 小模型，下载和推理成本低 |
+| Qwen2-0.5B-Instruct | 0.5B | Qwen2 小模型，可观察代际差异 |
+| Qwen1.5-0.5B-Chat | 0.5B | 更早版本 Qwen 小模型，可作为旧版对照 |
 | Qwen2.5-1.5B-Instruct | 1.5B | 中文能力通常更稳定，仍可在 CPU 环境中尝试 |
+| InternLM2-Chat-1.8B-SFT | 1.8B | 另一个国产小模型，用于扩展横向比较 |
 
-如需将 7B/8B 模型体验纳入对比，可单独运行：
+默认每题最多生成 128 个 token。如果希望更快完成测试，可以执行：
 
 ```bash
-bash run_deepseek7b.sh
-bash run_internlm7b.sh
-bash run_llama31_8b.sh
+MAX_NEW_TOKENS=64 bash run_tests.sh
 ```
-
-这些脚本每次只运行一个大模型：
-
-| 模型 | 参数规模 | 说明 |
-| --- | ---: | --- |
-| DeepSeek LLM 7B Chat | 7B | DeepSeek 旧版聊天模型，不是 R1 推理模型 |
-| InternLM2.5 7B Chat | 7B | 中文能力较强，适合作为国产 7B 对比模型 |
-| Meta Llama 3.1 8B Instruct | 8B | 英文和多语能力较强，适合观察跨语种模型表现 |
 
 ## 五、测试问题
 
@@ -82,14 +77,6 @@ prompts/semantic_understanding.json
 - 人物指代关系。
 - 词义消歧和语用理解。
 
-问题示例：
-
-```text
-请说出以下两句话区别在哪里？
-1、冬天：能穿多少穿多少。
-2、夏天：能穿多少穿多少。
-```
-
 ## 六、输出结果
 
 运行 `bash run_tests.sh` 后，每个模型会生成独立结果目录：
@@ -104,16 +91,16 @@ results/<label>/results.json
 | 标签 | 模型 |
 | --- | --- |
 | `qwen2.5-0.5b` | `qwen/Qwen2.5-0.5B-Instruct` |
+| `qwen2-0.5b` | `qwen/Qwen2-0.5B-Instruct` |
+| `qwen1.5-0.5b` | `qwen/Qwen1.5-0.5B-Chat` |
 | `qwen2.5-1.5b` | `qwen/Qwen2.5-1.5B-Instruct` |
-| `deepseek-llm-7b-chat` | `deepseek-ai/deepseek-llm-7b-chat` |
-| `internlm2.5-7b-chat` | `Shanghai_AI_Laboratory/internlm2_5-7b-chat` |
-| `llama3.1-8b-instruct` | `LLM-Research/Meta-Llama-3.1-8B-Instruct` |
+| `internlm2-chat-1.8b-sft` | `Shanghai_AI_Laboratory/internlm2-chat-1_8b-sft` |
 
 ## 七、横向对比记录表
 
 完成测试后，可按下表整理结果：
 
-| 维度 | Qwen2.5-0.5B-Instruct | Qwen2.5-1.5B-Instruct | DeepSeek / InternLM / Llama |
+| 维度 | Qwen2.5-0.5B | Qwen2 / Qwen1.5 0.5B | Qwen2.5-1.5B / InternLM2-1.8B |
 | --- | --- | --- | --- |
 | 部署难度 | 待填写 | 待填写 | 待填写 |
 | CPU 推理速度 | 待填写 | 待填写 | 待填写 |
@@ -136,8 +123,8 @@ results/<label>/results.json
 
 综合部署成本、运行速度和中文语义理解能力，可以从以下角度撰写结论：
 
-- Qwen2.5-0.5B-Instruct 更适合免费 CPU 环境快速跑通部署流程。
-- Qwen2.5-1.5B-Instruct 通常能提供更完整的中文解释，适合作为轻量横向对比主力模型。
-- DeepSeek LLM 7B Chat、InternLM2.5 7B Chat 和 Llama 3.1 8B Instruct 下载和推理成本更高，适合作为资源允许时的补充测试。
+- 0.5B 模型更适合免费 CPU 环境快速跑通部署流程和完成截图。
+- Qwen2.5-1.5B-Instruct 和 InternLM2-Chat-1.8B-SFT 通常回答更完整，但推理速度会慢于 0.5B 模型。
+- 在免费 CPU Notebook 环境中，小模型更适合完成课程实验和横向比较。
 
 最终报告中需要补充公开仓库链接，并根据 `results/` 中的输出结果填写对比分析。

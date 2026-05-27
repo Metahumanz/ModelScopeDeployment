@@ -23,5 +23,17 @@ echo "[setup] Installing packages listed in requirements.txt."
 python -m pip install -r requirements.txt
 
 echo
+echo "[setup] Installed runtime versions:"
+python - <<'PY'
+import importlib.metadata as metadata
+
+for package in ("torch", "transformers", "modelscope"):
+    try:
+        print(f"{package}: {metadata.version(package)}")
+    except metadata.PackageNotFoundError:
+        print(f"{package}: not installed")
+PY
+
+echo
 echo "[setup] Done. Next step:"
 echo "bash run_tests.sh"

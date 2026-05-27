@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -80,8 +81,11 @@ def resolve_torch_dtype(torch_module: Any, value: str) -> Any:
 
 def load_model_and_tokenizer(model_path: str, torch_dtype_value: str):
     import torch
+    import transformers
     from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 
+    print(f"[load] torch: {torch.__version__}")
+    print(f"[load] transformers: {transformers.__version__}")
     print(f"[load] tokenizer: {model_path}")
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
@@ -223,7 +227,17 @@ def main() -> None:
     print("[eval] Resolving model path. This may download the model if it is not cached.")
     model_path = resolve_model(args.model, args.cache_dir)
     print(f"[eval] Loading tokenizer and model into CPU memory with torch dtype: {args.torch_dtype}.")
-    tokenizer, model = load_model_and_tokenizer(model_path, args.torch_dtype)
+    try:
+        tokenizer, model = load_model_and_tokenizer(model_path, args.torch_dtype)
+    except ValueError as exc:
+        message = str(exc)
+        if "torch.load" in message and "torch to at least v2.6" in message:
+            print("[error] This model uses legacy .bin weights, but the installed Transformers")
+            print("[error] refuses to load .bin files with torch<2.6.")
+            print("[error] Run `bash setup_modelscope.sh` to install the pinned compatible")
+            print("[error] Transformers version from requirements.txt, then run this model script again.")
+            sys.exit(2)
+        raise
     print("[eval] Model is ready. Starting question answering.")
 
     results: list[dict[str, Any]] = []

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 QUESTIONS_FILE="${QUESTIONS_FILE:-prompts/semantic_understanding.json}"
-MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-256}"
+MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-128}"
 TEMPERATURE="${TEMPERATURE:-0.2}"
 TOP_P="${TOP_P:-0.9}"
 
@@ -13,7 +13,7 @@ Usage:
 
 Optional environment variables:
   QUESTIONS_FILE=path       Question JSON file. Default: prompts/semantic_understanding.json
-  MAX_NEW_TOKENS=number     Max generated tokens per answer. Default: 256
+  MAX_NEW_TOKENS=number     Max generated tokens per answer. Default: 128
   TEMPERATURE=number        Sampling temperature. Default: 0.2
   TOP_P=number              Top-p sampling value. Default: 0.9
   MODELSCOPE_CACHE_DIR=dir  Optional ModelScope cache directory.
@@ -35,12 +35,14 @@ fi
 
 tests=(
   "qwen/Qwen2.5-0.5B-Instruct|qwen2.5-0.5b|$MAX_NEW_TOKENS"
+  "qwen/Qwen2-0.5B-Instruct|qwen2-0.5b|$MAX_NEW_TOKENS"
+  "qwen/Qwen1.5-0.5B-Chat|qwen1.5-0.5b|$MAX_NEW_TOKENS"
   "qwen/Qwen2.5-1.5B-Instruct|qwen2.5-1.5b|$MAX_NEW_TOKENS"
+  "Shanghai_AI_Laboratory/internlm2-chat-1_8b-sft|internlm2-chat-1.8b-sft|$MAX_NEW_TOKENS"
 )
 
 echo "[tests] This script runs all configured model evaluations."
-echo "[tests] It only runs the two lightweight Qwen tests."
-echo "[tests] Run 7B/8B model scripts separately when resources are enough."
+echo "[tests] It only runs small CPU-friendly models."
 echo "[tests] Question file: $QUESTIONS_FILE"
 echo "[tests] Results folder: results/<label>/"
 echo "[tests] Total model tests: ${#tests[@]}"

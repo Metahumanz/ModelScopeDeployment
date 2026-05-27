@@ -10,9 +10,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-import torch
-from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
-
 
 SYSTEM_PROMPT = (
     "你是一个中文语义理解能力测试助手。请直接回答问题，"
@@ -25,6 +22,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", required=True, help="ModelScope model id or local model path.")
     parser.add_argument("--label", default=None, help="Output folder label. Defaults to a safe model name.")
     parser.add_argument("--questions", default="prompts/semantic_understanding.json", help="Question JSON file.")
+    parser.add_argument("--output-dir", default="results", help="Directory for generated result folders.")
     parser.add_argument("--cache-dir", default=None, help="Optional ModelScope cache directory.")
     parser.add_argument("--max-new-tokens", type=int, default=256, help="Maximum generated tokens per answer.")
     parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature.")
@@ -63,6 +61,9 @@ def resolve_model(model: str, cache_dir: str | None) -> str:
 
 
 def load_model_and_tokenizer(model_path: str):
+    import torch
+    from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
+
     print(f"[load] tokenizer: {model_path}")
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
@@ -98,6 +99,8 @@ def build_prompt(tokenizer: Any, question: str) -> str:
 
 
 def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Namespace) -> str:
+    import torch
+
     # ChatGLM-style remote code exposes a chat method that handles tokenization itself.
     if hasattr(model, "chat") and not getattr(tokenizer, "chat_template", None):
         response, _history = model.chat(
@@ -130,8 +133,8 @@ def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Na
     return tokenizer.decode(answer_ids, skip_special_tokens=True).strip()
 
 
-def write_outputs(label: str, model_name: str, results: list[dict[str, Any]]) -> Path:
-    out_dir = Path("outputs") / label
+def write_outputs(output_dir: str, label: str, model_name: str, results: list[dict[str, Any]]) -> Path:
+    out_dir = Path(output_dir) / label
     out_dir.mkdir(parents=True, exist_ok=True)
 
     payload = {
@@ -175,9 +178,14 @@ def main() -> None:
     args = parse_args()
     label = args.label or safe_name(args.model)
 
+    print("[eval] Loading question set.")
     questions = load_questions(args.questions)
+    print(f"[eval] Loaded {len(questions)} questions from {args.questions}.")
+    print("[eval] Resolving model path. This may download the model if it is not cached.")
     model_path = resolve_model(args.model, args.cache_dir)
+    print("[eval] Loading tokenizer and model into CPU memory.")
     tokenizer, model = load_model_and_tokenizer(model_path)
+    print("[eval] Model is ready. Starting question answering.")
 
     results: list[dict[str, Any]] = []
     for index, item in enumerate(questions, start=1):
@@ -199,9 +207,10 @@ def main() -> None:
             }
         )
 
-    out_dir = write_outputs(label, args.model, results)
+    print("[eval] Writing result files.")
+    out_dir = write_outputs(args.output_dir, label, args.model, results)
     print("\n" + "=" * 80)
-    print(f"Saved results to: {out_dir}")
+    print(f"[eval] Saved Markdown and JSON results to: {out_dir}")
 
 
 if __name__ == "__main__":

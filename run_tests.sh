@@ -45,8 +45,11 @@ if [[ "${RUN_LARGE_MODELS:-0}" == "1" ]]; then
   tests+=("ZhipuAI/chatglm3-6b|chatglm3-6b|${CHATGLM_MAX_NEW_TOKENS:-$MAX_NEW_TOKENS}")
 fi
 
+echo "[tests] This script runs all configured model evaluations."
 echo "[tests] Question file: $QUESTIONS_FILE"
+echo "[tests] Results folder: results/<label>/"
 echo "[tests] Total model tests: ${#tests[@]}"
+echo "[tests] Large models enabled: ${RUN_LARGE_MODELS:-0}"
 
 for item in "${tests[@]}"; do
   IFS="|" read -r model label tokens <<<"$item"
@@ -54,12 +57,14 @@ for item in "${tests[@]}"; do
   echo "================================================================"
   echo "[tests] Running $label"
   echo "[tests] Model: $model"
+  echo "[tests] The model will answer every question, then save Markdown and JSON results."
   echo "================================================================"
 
   python scripts/run_eval.py \
     --model "$model" \
     --label "$label" \
     --questions "$QUESTIONS_FILE" \
+    --output-dir results \
     --max-new-tokens "$tokens" \
     --temperature "$TEMPERATURE" \
     --top-p "$TOP_P" \
@@ -67,4 +72,4 @@ for item in "${tests[@]}"; do
 done
 
 echo
-echo "[tests] Done. Results are saved under outputs/<label>/."
+echo "[tests] Done. Results are saved under results/<label>/."

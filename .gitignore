@@ -21,7 +21,7 @@ models/
 *.pth
 *.safetensors
 
-# Local course reference PDFs; keep generated reports under reports/
+# Local course reference PDFs
 第3次*.pdf
 
 # System files

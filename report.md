@@ -2,9 +2,9 @@
 
 ## 一、项目说明
 
-本项目用于课程第 3 次作业：在 ModelScope Notebook 环境中完成大语言模型部署体验、中文语义理解问答测试和模型横向对比。公开仓库用于保存实验脚本、测试问题、运行结果、截图和报告内容。
+本项目用于课程第 3 次作业：在 ModelScope Notebook 环境中完成大语言模型部署体验、中文语义理解问答测试和模型横向对比。公开仓库用于保存实验脚本、测试问题、运行结果和报告内容。
 
-项目不提供长期在线推理服务。ModelScope 免费 Notebook 实例存在运行时长和资源限制，更适合作为模型部署、短时测试和截图环境。
+项目不提供长期在线推理服务。ModelScope 免费 Notebook 实例存在运行时长和资源限制，更适合作为模型部署和短时测试环境。
 
 ## 二、实验环境
 
@@ -23,8 +23,8 @@
 
 ```bash
 cd /mnt/workspace
-git clone https://github.com/<your-name>/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/Metahumanz/ModelScopeDeployment.git
+cd ModelScopeDeployment
 bash setup_modelscope.sh
 ```
 
@@ -34,13 +34,6 @@ bash setup_modelscope.sh
 2. 输出 pip 版本。
 3. 升级 pip、setuptools、wheel。
 4. 安装 `requirements.txt` 中的项目依赖。
-
-建议保留以下截图：
-
-| 文件名建议 | 截图内容 |
-| --- | --- |
-| `images/git-clone.png` | 执行 `git clone` 成功 |
-| `images/install-deps.png` | 执行 `bash setup_modelscope.sh` 成功 |
 
 ## 四、统一测试入口
 
@@ -54,7 +47,7 @@ bash run_tests.sh
 
 | 模型 | 参数规模 | 选择原因 |
 | --- | ---: | --- |
-| Qwen2.5-0.5B-Instruct | 0.5B | 下载和推理成本低，适合先完成部署验证和截图 |
+| Qwen2.5-0.5B-Instruct | 0.5B | 下载和推理成本低，适合先完成部署验证 |
 | Qwen2.5-1.5B-Instruct | 1.5B | 中文能力通常更稳定，仍可在 CPU 环境中尝试 |
 
 如需将课程推荐方向的大模型体验也纳入同一轮测试：
@@ -98,8 +91,8 @@ prompts/semantic_understanding.json
 运行 `bash run_tests.sh` 后，每个模型会生成独立结果目录：
 
 ```text
-outputs/<label>/results.md
-outputs/<label>/results.json
+results/<label>/results.md
+results/<label>/results.json
 ```
 
 默认标签包括：
@@ -109,15 +102,6 @@ outputs/<label>/results.json
 | `qwen2.5-0.5b` | `qwen/Qwen2.5-0.5B-Instruct` |
 | `qwen2.5-1.5b` | `qwen/Qwen2.5-1.5B-Instruct` |
 | `chatglm3-6b` | `ZhipuAI/chatglm3-6b`，需开启 `RUN_LARGE_MODELS=1` |
-
-建议保留以下截图：
-
-| 文件名建议 | 截图内容 |
-| --- | --- |
-| `images/model-run.png` | 执行 `bash run_tests.sh` 的总体运行过程 |
-| `images/qwen2.5-0.5b-test.png` | Qwen2.5-0.5B 问答结果 |
-| `images/qwen2.5-1.5b-test.png` | Qwen2.5-1.5B 问答结果 |
-| `images/chatglm3-6b-test.png` | ChatGLM3-6B 问答结果，资源允许时 |
 
 ## 七、横向对比记录表
 
@@ -150,4 +134,4 @@ outputs/<label>/results.json
 - Qwen2.5-1.5B-Instruct 通常能提供更完整的中文解释，适合作为轻量横向对比主力模型。
 - ChatGLM3-6B 更接近课程推荐的大模型体验，但在免费 CPU Notebook 上推理耗时较长，适合作为资源允许时的补充测试。
 
-最终报告中需要补充实际运行截图、公开仓库链接和根据输出结果填写的对比分析。
+最终报告中需要补充公开仓库链接，并根据 `results/` 中的输出结果填写对比分析。

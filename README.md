@@ -2,7 +2,7 @@
 
 公开仓库：[Metahumanz/ModelScopeDeployment](https://github.com/Metahumanz/ModelScopeDeployment)
 
-## 快速开始
+## 使用方法
 
 在 ModelScope Notebook 的 Terminal 中执行：
 
@@ -14,26 +14,22 @@ bash setup_modelscope.sh
 bash run_tests.sh
 ```
 
-`setup_modelscope.sh` 用于检查 Python 环境并安装依赖；`run_tests.sh` 会统一运行默认模型测试。
+`setup_modelscope.sh` 用于检查环境并安装依赖。`run_tests.sh` 会依次运行默认模型测试，并把结果保存到 `results/`。
 
-## 运行全部测试
+## 默认测试
 
-默认测试两个适合 CPU 环境的轻量模型：
+默认运行两个适合 CPU 环境的模型：
 
 - `qwen/Qwen2.5-0.5B-Instruct`
 - `qwen/Qwen2.5-1.5B-Instruct`
 
-```bash
-bash run_tests.sh
-```
-
-如需把课程推荐的大模型体验也纳入同一轮测试：
+如需额外测试 ChatGLM3-6B：
 
 ```bash
 RUN_LARGE_MODELS=1 bash run_tests.sh
 ```
 
-注意：`ZhipuAI/chatglm3-6b` 在免费 CPU Notebook 上可能运行很慢，建议资源充足时再开启。
+`ZhipuAI/chatglm3-6b` 在免费 CPU Notebook 上可能运行很慢，建议资源充足时再开启。
 
 ## 常用参数
 
@@ -54,8 +50,8 @@ bash run_tests.sh --help
 每个模型的测试结果会保存到：
 
 ```text
-outputs/<label>/results.md
-outputs/<label>/results.json
+results/<label>/results.md
+results/<label>/results.json
 ```
 
 默认问题集位于：
@@ -64,7 +60,7 @@ outputs/<label>/results.json
 prompts/semantic_understanding.json
 ```
 
-实验文档和报告内容见：
+实验说明和报告内容见：
 
 ```text
 report.md

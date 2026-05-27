@@ -1,0 +1,153 @@
+# 大语言模型部署体验与横向对比实验报告
+
+## 一、项目说明
+
+本项目用于课程第 3 次作业：在 ModelScope Notebook 环境中完成大语言模型部署体验、中文语义理解问答测试和模型横向对比。公开仓库用于保存实验脚本、测试问题、运行结果、截图和报告内容。
+
+项目不提供长期在线推理服务。ModelScope 免费 Notebook 实例存在运行时长和资源限制，更适合作为模型部署、短时测试和截图环境。
+
+## 二、实验环境
+
+| 项目 | 内容 |
+| --- | --- |
+| 平台 | ModelScope Notebook |
+| 推荐镜像 | ubuntu22.04-py311-torch2.3.1-1.37.1 |
+| Python | 3.11 |
+| PyTorch | 2.3.1 |
+| 主要依赖 | modelscope、transformers、accelerate、sentencepiece、tiktoken、einops |
+| 运行方式 | CPU 推理 |
+
+## 三、部署流程
+
+在 ModelScope Notebook 的 Terminal 中执行：
+
+```bash
+cd /mnt/workspace
+git clone https://github.com/<your-name>/<your-repo>.git
+cd <your-repo>
+bash setup_modelscope.sh
+```
+
+`setup_modelscope.sh` 会完成以下步骤：
+
+1. 输出 Python 版本。
+2. 输出 pip 版本。
+3. 升级 pip、setuptools、wheel。
+4. 安装 `requirements.txt` 中的项目依赖。
+
+建议保留以下截图：
+
+| 文件名建议 | 截图内容 |
+| --- | --- |
+| `images/git-clone.png` | 执行 `git clone` 成功 |
+| `images/install-deps.png` | 执行 `bash setup_modelscope.sh` 成功 |
+
+## 四、统一测试入口
+
+所有模型问答测试统一通过根目录脚本运行：
+
+```bash
+bash run_tests.sh
+```
+
+默认会运行两个适合 CPU 环境的轻量模型：
+
+| 模型 | 参数规模 | 选择原因 |
+| --- | ---: | --- |
+| Qwen2.5-0.5B-Instruct | 0.5B | 下载和推理成本低，适合先完成部署验证和截图 |
+| Qwen2.5-1.5B-Instruct | 1.5B | 中文能力通常更稳定，仍可在 CPU 环境中尝试 |
+
+如需将课程推荐方向的大模型体验也纳入同一轮测试：
+
+```bash
+RUN_LARGE_MODELS=1 bash run_tests.sh
+```
+
+该模式会额外运行：
+
+| 模型 | 参数规模 | 说明 |
+| --- | ---: | --- |
+| ChatGLM3-6B | 6B | 更贴近课程推荐模型，但 CPU 推理较慢 |
+
+## 五、测试问题
+
+默认问题集位于：
+
+```text
+prompts/semantic_understanding.json
+```
+
+当前问题主要覆盖：
+
+- 中文歧义理解。
+- 双关与语义反转。
+- 多层嵌套指代。
+- 人物指代关系。
+- 词义消歧和语用理解。
+
+问题示例：
+
+```text
+请说出以下两句话区别在哪里？
+1、冬天：能穿多少穿多少。
+2、夏天：能穿多少穿多少。
+```
+
+## 六、输出结果
+
+运行 `bash run_tests.sh` 后，每个模型会生成独立结果目录：
+
+```text
+outputs/<label>/results.md
+outputs/<label>/results.json
+```
+
+默认标签包括：
+
+| 标签 | 模型 |
+| --- | --- |
+| `qwen2.5-0.5b` | `qwen/Qwen2.5-0.5B-Instruct` |
+| `qwen2.5-1.5b` | `qwen/Qwen2.5-1.5B-Instruct` |
+| `chatglm3-6b` | `ZhipuAI/chatglm3-6b`，需开启 `RUN_LARGE_MODELS=1` |
+
+建议保留以下截图：
+
+| 文件名建议 | 截图内容 |
+| --- | --- |
+| `images/model-run.png` | 执行 `bash run_tests.sh` 的总体运行过程 |
+| `images/qwen2.5-0.5b-test.png` | Qwen2.5-0.5B 问答结果 |
+| `images/qwen2.5-1.5b-test.png` | Qwen2.5-1.5B 问答结果 |
+| `images/chatglm3-6b-test.png` | ChatGLM3-6B 问答结果，资源允许时 |
+
+## 七、横向对比记录表
+
+完成测试后，可按下表整理结果：
+
+| 维度 | Qwen2.5-0.5B-Instruct | Qwen2.5-1.5B-Instruct | ChatGLM3-6B / 其他模型 |
+| --- | --- | --- | --- |
+| 部署难度 | 待填写 | 待填写 | 待填写 |
+| CPU 推理速度 | 待填写 | 待填写 | 待填写 |
+| 中文歧义理解 | 待填写 | 待填写 | 待填写 |
+| 指代关系分析 | 待填写 | 待填写 | 待填写 |
+| 词义消歧能力 | 待填写 | 待填写 | 待填写 |
+| 回答完整性 | 待填写 | 待填写 | 待填写 |
+| 稳定性 | 待填写 | 待填写 | 待填写 |
+| 综合评价 | 待填写 | 待填写 | 待填写 |
+
+分析时可重点观察：
+
+- 模型是否能识别同一句式在不同语境中的含义差异。
+- 模型是否能拆解多层嵌套指代。
+- 模型是否能解释“意思”等多义词在对话中的不同语用含义。
+- 回答是否稳定、是否出现明显跑题、重复或编造。
+- 在 CPU 环境中的部署成本和运行耗时是否可接受。
+
+## 八、实验结论模板
+
+综合部署成本、运行速度和中文语义理解能力，可以从以下角度撰写结论：
+
+- Qwen2.5-0.5B-Instruct 更适合免费 CPU 环境快速跑通部署流程。
+- Qwen2.5-1.5B-Instruct 通常能提供更完整的中文解释，适合作为轻量横向对比主力模型。
+- ChatGLM3-6B 更接近课程推荐的大模型体验，但在免费 CPU Notebook 上推理耗时较长，适合作为资源允许时的补充测试。
+
+最终报告中需要补充实际运行截图、公开仓库链接和根据输出结果填写的对比分析。

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local environment
+.env
+.env.*
+
+# Model caches and large model files
+.cache/
+model_cache/
+models/
+*.bin
+*.ckpt
+*.gguf
+*.onnx
+*.pt
+*.pth
+*.safetensors
+
+# Local course reference PDFs; keep generated reports under reports/
+第3次*.pdf
+
+# System files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""Run a small Chinese semantic-understanding evaluation on ModelScope models."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import time
+from pathlib import Path
+from typing import Any
+
+import torch
+from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
+
+
+SYSTEM_PROMPT = (
+    "你是一个中文语义理解能力测试助手。请直接回答问题，"
+    "重点解释歧义、指代关系和推理过程，避免无关展开。"
+)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run Chinese QA evaluation for one LLM.")
+    parser.add_argument("--model", required=True, help="ModelScope model id or local model path.")
+    parser.add_argument("--label", default=None, help="Output folder label. Defaults to a safe model name.")
+    parser.add_argument("--questions", default="prompts/semantic_understanding.json", help="Question JSON file.")
+    parser.add_argument("--cache-dir", default=None, help="Optional ModelScope cache directory.")
+    parser.add_argument("--max-new-tokens", type=int, default=256, help="Maximum generated tokens per answer.")
+    parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature.")
+    parser.add_argument("--top-p", type=float, default=0.9, help="Top-p sampling value.")
+    return parser.parse_args()
+
+
+def safe_name(value: str) -> str:
+    value = value.strip().replace("\\", "/").rstrip("/")
+    value = value.split("/")[-1] or "model"
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", value).strip("-") or "model"
+
+
+def load_questions(path: str) -> list[dict[str, Any]]:
+    with open(path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+    if not isinstance(data, list):
+        raise ValueError("Question file must contain a JSON list.")
+    return data
+
+
+def resolve_model(model: str, cache_dir: str | None) -> str:
+    local_path = Path(model).expanduser()
+    if local_path.exists():
+        return str(local_path)
+
+    try:
+        from modelscope import snapshot_download
+
+        print(f"[modelscope] Downloading or locating: {model}")
+        return snapshot_download(model, cache_dir=cache_dir)
+    except Exception as exc:  # noqa: BLE001 - fall back to Transformers loader.
+        print(f"[warn] ModelScope snapshot_download failed: {exc}")
+        print("[warn] Falling back to Transformers model id/path.")
+        return model
+
+
+def load_model_and_tokenizer(model_path: str):
+    print(f"[load] tokenizer: {model_path}")
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+
+    common_kwargs = {
+        "trust_remote_code": True,
+        "torch_dtype": torch.float32,
+        "low_cpu_mem_usage": True,
+    }
+
+    print(f"[load] model: {model_path}")
+    try:
+        model = AutoModelForCausalLM.from_pretrained(model_path, **common_kwargs)
+    except Exception as exc:  # noqa: BLE001 - ChatGLM-style models often use AutoModel.
+        print(f"[warn] AutoModelForCausalLM failed: {exc}")
+        print("[load] retry with AutoModel")
+        model = AutoModel.from_pretrained(model_path, **common_kwargs)
+
+    model.eval()
+    return tokenizer, model
+
+
+def build_prompt(tokenizer: Any, question: str) -> str:
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": question},
+    ]
+
+    chat_template = getattr(tokenizer, "chat_template", None)
+    if chat_template:
+        return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+
+    return f"{SYSTEM_PROMPT}\n\n用户：{question}\n助手："
+
+
+def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Namespace) -> str:
+    # ChatGLM-style remote code exposes a chat method that handles tokenization itself.
+    if hasattr(model, "chat") and not getattr(tokenizer, "chat_template", None):
+        response, _history = model.chat(
+            tokenizer,
+            question,
+            history=[],
+            max_length=args.max_new_tokens + 512,
+            temperature=args.temperature,
+            top_p=args.top_p,
+        )
+        return str(response).strip()
+
+    prompt = build_prompt(tokenizer, question)
+    inputs = tokenizer(prompt, return_tensors="pt")
+
+    generation_kwargs: dict[str, Any] = {
+        "max_new_tokens": args.max_new_tokens,
+        "do_sample": args.temperature > 0,
+        "pad_token_id": tokenizer.eos_token_id,
+    }
+    if args.temperature > 0:
+        generation_kwargs["temperature"] = args.temperature
+        generation_kwargs["top_p"] = args.top_p
+
+    with torch.no_grad():
+        output_ids = model.generate(**inputs, **generation_kwargs)
+
+    prompt_length = inputs["input_ids"].shape[-1]
+    answer_ids = output_ids[0][prompt_length:]
+    return tokenizer.decode(answer_ids, skip_special_tokens=True).strip()
+
+
+def write_outputs(label: str, model_name: str, results: list[dict[str, Any]]) -> Path:
+    out_dir = Path("outputs") / label
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "model": model_name,
+        "label": label,
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "results": results,
+    }
+
+    with open(out_dir / "results.json", "w", encoding="utf-8") as file:
+        json.dump(payload, file, ensure_ascii=False, indent=2)
+
+    lines = [
+        f"# {label} 问答测试结果",
+        "",
+        f"- 模型：`{model_name}`",
+        f"- 时间：{payload['created_at']}",
+        "",
+    ]
+    for item in results:
+        lines.extend(
+            [
+                f"## {item['id']}. {item['focus']}",
+                "",
+                f"**问题：** {item['question']}",
+                "",
+                "**回答：**",
+                "",
+                item["answer"],
+                "",
+            ]
+        )
+
+    with open(out_dir / "results.md", "w", encoding="utf-8") as file:
+        file.write("\n".join(lines).strip() + "\n")
+
+    return out_dir
+
+
+def main() -> None:
+    args = parse_args()
+    label = args.label or safe_name(args.model)
+
+    questions = load_questions(args.questions)
+    model_path = resolve_model(args.model, args.cache_dir)
+    tokenizer, model = load_model_and_tokenizer(model_path)
+
+    results: list[dict[str, Any]] = []
+    for index, item in enumerate(questions, start=1):
+        question = item["question"]
+        focus = item.get("focus", "语义理解")
+        print("\n" + "=" * 80)
+        print(f"[{index}/{len(questions)}] {focus}")
+        print(question)
+        print("-" * 80)
+        answer = generate_answer(tokenizer, model, question, args)
+        print(answer)
+
+        results.append(
+            {
+                "id": item.get("id", index),
+                "focus": focus,
+                "question": question,
+                "answer": answer,
+            }
+        )
+
+    out_dir = write_outputs(label, args.model, results)
+    print("\n" + "=" * 80)
+    print(f"Saved results to: {out_dir}")
+
+
+if __name__ == "__main__":
+    main()

@@ -50,17 +50,21 @@ bash run_tests.sh
 | Qwen2.5-0.5B-Instruct | 0.5B | 下载和推理成本低，适合先完成部署验证 |
 | Qwen2.5-1.5B-Instruct | 1.5B | 中文能力通常更稳定，仍可在 CPU 环境中尝试 |
 
-如需将课程推荐方向的大模型体验纳入对比，可单独运行：
+如需将 7B/8B 模型体验纳入对比，可单独运行：
 
 ```bash
-bash run_chatglm.sh
+bash run_deepseek7b.sh
+bash run_internlm7b.sh
+bash run_llama31_8b.sh
 ```
 
-该脚本只运行：
+这些脚本每次只运行一个大模型：
 
 | 模型 | 参数规模 | 说明 |
 | --- | ---: | --- |
-| ChatGLM3-6B | 6B | 更贴近课程推荐模型，但 CPU 推理较慢 |
+| DeepSeek LLM 7B Chat | 7B | DeepSeek 旧版聊天模型，不是 R1 推理模型 |
+| InternLM2.5 7B Chat | 7B | 中文能力较强，适合作为国产 7B 对比模型 |
+| Meta Llama 3.1 8B Instruct | 8B | 英文和多语能力较强，适合观察跨语种模型表现 |
 
 ## 五、测试问题
 
@@ -101,13 +105,15 @@ results/<label>/results.json
 | --- | --- |
 | `qwen2.5-0.5b` | `qwen/Qwen2.5-0.5B-Instruct` |
 | `qwen2.5-1.5b` | `qwen/Qwen2.5-1.5B-Instruct` |
-| `chatglm3-6b` | `ZhipuAI/chatglm3-6b`，运行 `bash run_chatglm.sh` |
+| `deepseek-llm-7b-chat` | `deepseek-ai/deepseek-llm-7b-chat` |
+| `internlm2.5-7b-chat` | `Shanghai_AI_Laboratory/internlm2_5-7b-chat` |
+| `llama3.1-8b-instruct` | `LLM-Research/Meta-Llama-3.1-8B-Instruct` |
 
 ## 七、横向对比记录表
 
 完成测试后，可按下表整理结果：
 
-| 维度 | Qwen2.5-0.5B-Instruct | Qwen2.5-1.5B-Instruct | ChatGLM3-6B / 其他模型 |
+| 维度 | Qwen2.5-0.5B-Instruct | Qwen2.5-1.5B-Instruct | DeepSeek / InternLM / Llama |
 | --- | --- | --- | --- |
 | 部署难度 | 待填写 | 待填写 | 待填写 |
 | CPU 推理速度 | 待填写 | 待填写 | 待填写 |
@@ -132,6 +138,6 @@ results/<label>/results.json
 
 - Qwen2.5-0.5B-Instruct 更适合免费 CPU 环境快速跑通部署流程。
 - Qwen2.5-1.5B-Instruct 通常能提供更完整的中文解释，适合作为轻量横向对比主力模型。
-- ChatGLM3-6B 更接近课程推荐的大模型体验，但在免费 CPU Notebook 上推理耗时较长，适合作为资源允许时的补充测试。
+- DeepSeek LLM 7B Chat、InternLM2.5 7B Chat 和 Llama 3.1 8B Instruct 下载和推理成本更高，适合作为资源允许时的补充测试。
 
 最终报告中需要补充公开仓库链接，并根据 `results/` 中的输出结果填写对比分析。

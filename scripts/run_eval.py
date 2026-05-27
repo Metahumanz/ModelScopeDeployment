@@ -27,6 +27,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-new-tokens", type=int, default=256, help="Maximum generated tokens per answer.")
     parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature.")
     parser.add_argument("--top-p", type=float, default=0.9, help="Top-p sampling value.")
+    parser.add_argument(
+        "--torch-dtype",
+        default="auto",
+        choices=["auto", "float32", "bfloat16", "float16"],
+        help="Torch dtype used when loading the model.",
+    )
     return parser.parse_args()
 
 
@@ -60,7 +66,19 @@ def resolve_model(model: str, cache_dir: str | None) -> str:
         return model
 
 
-def load_model_and_tokenizer(model_path: str):
+def resolve_torch_dtype(torch_module: Any, value: str) -> Any:
+    if value == "auto":
+        return "auto"
+    if value == "float32":
+        return torch_module.float32
+    if value == "bfloat16":
+        return torch_module.bfloat16
+    if value == "float16":
+        return torch_module.float16
+    raise ValueError(f"Unsupported torch dtype: {value}")
+
+
+def load_model_and_tokenizer(model_path: str, torch_dtype_value: str):
     import torch
     from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 
@@ -69,21 +87,17 @@ def load_model_and_tokenizer(model_path: str):
 
     common_kwargs = {
         "trust_remote_code": True,
-        "torch_dtype": torch.float32,
+        "torch_dtype": resolve_torch_dtype(torch, torch_dtype_value),
         "low_cpu_mem_usage": True,
     }
 
     print(f"[load] model: {model_path}")
-    if "chatglm" in str(model_path).lower():
-        print("[load] ChatGLM detected; using AutoModel for its native chat interface.")
+    try:
+        model = AutoModelForCausalLM.from_pretrained(model_path, **common_kwargs)
+    except Exception as exc:  # noqa: BLE001 - some remote-code models use AutoModel.
+        print(f"[warn] AutoModelForCausalLM failed: {exc}")
+        print("[load] retry with AutoModel")
         model = AutoModel.from_pretrained(model_path, **common_kwargs)
-    else:
-        try:
-            model = AutoModelForCausalLM.from_pretrained(model_path, **common_kwargs)
-        except Exception as exc:  # noqa: BLE001 - ChatGLM-style models often use AutoModel.
-            print(f"[warn] AutoModelForCausalLM failed: {exc}")
-            print("[load] retry with AutoModel")
-            model = AutoModel.from_pretrained(model_path, **common_kwargs)
 
     model.eval()
     return tokenizer, model
@@ -105,8 +119,7 @@ def build_prompt(tokenizer: Any, question: str) -> str:
 def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Namespace) -> str:
     import torch
 
-    # ChatGLM-style remote code exposes chat(), which avoids generate() compatibility
-    # issues with newer Transformers versions.
+    # Some remote-code models expose chat(), which handles tokenization itself.
     if hasattr(model, "chat"):
         chat_question = f"{SYSTEM_PROMPT}\n\n问题：{question}"
         try:
@@ -209,8 +222,8 @@ def main() -> None:
     print(f"[eval] Loaded {len(questions)} questions from {args.questions}.")
     print("[eval] Resolving model path. This may download the model if it is not cached.")
     model_path = resolve_model(args.model, args.cache_dir)
-    print("[eval] Loading tokenizer and model into CPU memory.")
-    tokenizer, model = load_model_and_tokenizer(model_path)
+    print(f"[eval] Loading tokenizer and model into CPU memory with torch dtype: {args.torch_dtype}.")
+    tokenizer, model = load_model_and_tokenizer(model_path, args.torch_dtype)
     print("[eval] Model is ready. Starting question answering.")
 
     results: list[dict[str, Any]] = []

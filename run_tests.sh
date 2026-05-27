@@ -40,7 +40,7 @@ tests=(
 
 echo "[tests] This script runs all configured model evaluations."
 echo "[tests] It only runs the two lightweight Qwen tests."
-echo "[tests] Run bash run_chatglm.sh separately for ChatGLM3-6B."
+echo "[tests] Run 7B/8B model scripts separately when resources are enough."
 echo "[tests] Question file: $QUESTIONS_FILE"
 echo "[tests] Results folder: results/<label>/"
 echo "[tests] Total model tests: ${#tests[@]}"

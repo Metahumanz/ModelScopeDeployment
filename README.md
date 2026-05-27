@@ -23,20 +23,23 @@ bash run_tests.sh
 - `qwen/Qwen2.5-0.5B-Instruct`
 - `qwen/Qwen2.5-1.5B-Instruct`
 
-如需单独测试 ChatGLM3-6B：
+如需单独测试 7B/8B 模型：
 
 ```bash
-bash run_chatglm.sh
+bash run_deepseek7b.sh
+bash run_internlm7b.sh
+bash run_llama31_8b.sh
 ```
 
-`ZhipuAI/chatglm3-6b` 在免费 CPU Notebook 上可能运行很慢，建议资源充足时再开启。
+这些模型下载体积和内存占用都明显更高，建议资源充足时一次只运行一个。
 
 ## 常用参数
 
 ```bash
 QUESTIONS_FILE=prompts/semantic_understanding.json bash run_tests.sh
 MAX_NEW_TOKENS=128 bash run_tests.sh
-MAX_NEW_TOKENS=128 bash run_chatglm.sh
+MAX_NEW_TOKENS=128 bash run_deepseek7b.sh
+TORCH_DTYPE=bfloat16 bash run_internlm7b.sh
 MODELSCOPE_CACHE_DIR=/mnt/workspace/.cache/modelscope bash run_tests.sh
 ```
 
@@ -44,7 +47,7 @@ MODELSCOPE_CACHE_DIR=/mnt/workspace/.cache/modelscope bash run_tests.sh
 
 ```bash
 bash run_tests.sh --help
-bash run_chatglm.sh --help
+bash run_deepseek7b.sh --help
 ```
 
 ## 输出位置

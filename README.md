@@ -23,10 +23,10 @@ bash run_tests.sh
 - `qwen/Qwen2.5-0.5B-Instruct`
 - `qwen/Qwen2.5-1.5B-Instruct`
 
-如需额外测试 ChatGLM3-6B：
+如需单独测试 ChatGLM3-6B：
 
 ```bash
-RUN_LARGE_MODELS=1 bash run_tests.sh
+bash run_chatglm.sh
 ```
 
 `ZhipuAI/chatglm3-6b` 在免费 CPU Notebook 上可能运行很慢，建议资源充足时再开启。
@@ -36,6 +36,7 @@ RUN_LARGE_MODELS=1 bash run_tests.sh
 ```bash
 QUESTIONS_FILE=prompts/semantic_understanding.json bash run_tests.sh
 MAX_NEW_TOKENS=128 bash run_tests.sh
+MAX_NEW_TOKENS=128 bash run_chatglm.sh
 MODELSCOPE_CACHE_DIR=/mnt/workspace/.cache/modelscope bash run_tests.sh
 ```
 
@@ -43,6 +44,7 @@ MODELSCOPE_CACHE_DIR=/mnt/workspace/.cache/modelscope bash run_tests.sh
 
 ```bash
 bash run_tests.sh --help
+bash run_chatglm.sh --help
 ```
 
 ## 输出位置

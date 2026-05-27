@@ -12,8 +12,6 @@ Usage:
   bash run_tests.sh
 
 Optional environment variables:
-  RUN_LARGE_MODELS=1        Also run ChatGLM3-6B.
-  CHATGLM_MAX_NEW_TOKENS=n  Max generated tokens for ChatGLM3-6B. Default: MAX_NEW_TOKENS.
   QUESTIONS_FILE=path       Question JSON file. Default: prompts/semantic_understanding.json
   MAX_NEW_TOKENS=number     Max generated tokens per answer. Default: 256
   TEMPERATURE=number        Sampling temperature. Default: 0.2
@@ -22,7 +20,6 @@ Optional environment variables:
 
 Examples:
   bash run_tests.sh
-  RUN_LARGE_MODELS=1 bash run_tests.sh
 EOF
 }
 
@@ -41,15 +38,12 @@ tests=(
   "qwen/Qwen2.5-1.5B-Instruct|qwen2.5-1.5b|$MAX_NEW_TOKENS"
 )
 
-if [[ "${RUN_LARGE_MODELS:-0}" == "1" ]]; then
-  tests+=("ZhipuAI/chatglm3-6b|chatglm3-6b|${CHATGLM_MAX_NEW_TOKENS:-$MAX_NEW_TOKENS}")
-fi
-
 echo "[tests] This script runs all configured model evaluations."
+echo "[tests] It only runs the two lightweight Qwen tests."
+echo "[tests] Run bash run_chatglm.sh separately for ChatGLM3-6B."
 echo "[tests] Question file: $QUESTIONS_FILE"
 echo "[tests] Results folder: results/<label>/"
 echo "[tests] Total model tests: ${#tests[@]}"
-echo "[tests] Large models enabled: ${RUN_LARGE_MODELS:-0}"
 
 for item in "${tests[@]}"; do
   IFS="|" read -r model label tokens <<<"$item"

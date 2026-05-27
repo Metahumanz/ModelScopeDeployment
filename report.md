@@ -50,13 +50,13 @@ bash run_tests.sh
 | Qwen2.5-0.5B-Instruct | 0.5B | 下载和推理成本低，适合先完成部署验证 |
 | Qwen2.5-1.5B-Instruct | 1.5B | 中文能力通常更稳定，仍可在 CPU 环境中尝试 |
 
-如需将课程推荐方向的大模型体验也纳入同一轮测试：
+如需将课程推荐方向的大模型体验纳入对比，可单独运行：
 
 ```bash
-RUN_LARGE_MODELS=1 bash run_tests.sh
+bash run_chatglm.sh
 ```
 
-该模式会额外运行：
+该脚本只运行：
 
 | 模型 | 参数规模 | 说明 |
 | --- | ---: | --- |
@@ -101,7 +101,7 @@ results/<label>/results.json
 | --- | --- |
 | `qwen2.5-0.5b` | `qwen/Qwen2.5-0.5B-Instruct` |
 | `qwen2.5-1.5b` | `qwen/Qwen2.5-1.5B-Instruct` |
-| `chatglm3-6b` | `ZhipuAI/chatglm3-6b`，需开启 `RUN_LARGE_MODELS=1` |
+| `chatglm3-6b` | `ZhipuAI/chatglm3-6b`，运行 `bash run_chatglm.sh` |
 
 ## 七、横向对比记录表
 

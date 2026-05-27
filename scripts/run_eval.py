@@ -74,12 +74,16 @@ def load_model_and_tokenizer(model_path: str):
     }
 
     print(f"[load] model: {model_path}")
-    try:
-        model = AutoModelForCausalLM.from_pretrained(model_path, **common_kwargs)
-    except Exception as exc:  # noqa: BLE001 - ChatGLM-style models often use AutoModel.
-        print(f"[warn] AutoModelForCausalLM failed: {exc}")
-        print("[load] retry with AutoModel")
+    if "chatglm" in str(model_path).lower():
+        print("[load] ChatGLM detected; using AutoModel for its native chat interface.")
         model = AutoModel.from_pretrained(model_path, **common_kwargs)
+    else:
+        try:
+            model = AutoModelForCausalLM.from_pretrained(model_path, **common_kwargs)
+        except Exception as exc:  # noqa: BLE001 - ChatGLM-style models often use AutoModel.
+            print(f"[warn] AutoModelForCausalLM failed: {exc}")
+            print("[load] retry with AutoModel")
+            model = AutoModel.from_pretrained(model_path, **common_kwargs)
 
     model.eval()
     return tokenizer, model
@@ -101,17 +105,39 @@ def build_prompt(tokenizer: Any, question: str) -> str:
 def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Namespace) -> str:
     import torch
 
-    # ChatGLM-style remote code exposes a chat method that handles tokenization itself.
-    if hasattr(model, "chat") and not getattr(tokenizer, "chat_template", None):
-        response, _history = model.chat(
-            tokenizer,
-            question,
-            history=[],
-            max_length=args.max_new_tokens + 512,
-            temperature=args.temperature,
-            top_p=args.top_p,
-        )
-        return str(response).strip()
+    # ChatGLM-style remote code exposes chat(), which avoids generate() compatibility
+    # issues with newer Transformers versions.
+    if hasattr(model, "chat"):
+        chat_question = f"{SYSTEM_PROMPT}\n\n问题：{question}"
+        try:
+            chat_result = model.chat(
+                tokenizer,
+                chat_question,
+                history=[],
+                max_length=max(args.max_new_tokens + 512, 1024),
+                do_sample=args.temperature > 0,
+                temperature=args.temperature,
+                top_p=args.top_p,
+            )
+            response = chat_result[0] if isinstance(chat_result, tuple) else chat_result
+            return str(response).strip()
+        except TypeError as exc:
+            print(f"[warn] model.chat failed with TypeError: {exc}")
+            print("[warn] Retrying model.chat with fewer arguments.")
+            try:
+                chat_result = model.chat(
+                    tokenizer,
+                    chat_question,
+                    history=[],
+                    max_length=max(args.max_new_tokens + 512, 1024),
+                    temperature=args.temperature,
+                    top_p=args.top_p,
+                )
+                response = chat_result[0] if isinstance(chat_result, tuple) else chat_result
+                return str(response).strip()
+            except TypeError as retry_exc:
+                print(f"[warn] model.chat retry failed: {retry_exc}")
+                print("[warn] Falling back to model.generate.")
 
     prompt = build_prompt(tokenizer, question)
     inputs = tokenizer(prompt, return_tensors="pt")

@@ -2,10 +2,11 @@
 set -euo pipefail
 
 QUESTIONS_FILE="${QUESTIONS_FILE:-prompts/semantic_understanding.json}"
-MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-64}"
+MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-32}"
 TEMPERATURE="${TEMPERATURE:-0}"
 TOP_P="${TOP_P:-0.9}"
 TORCH_DTYPE="${TORCH_DTYPE:-float32}"
+TORCH_NUM_THREADS="${TORCH_NUM_THREADS:-4}"
 
 show_help() {
   cat <<'EOF'
@@ -14,10 +15,11 @@ Usage:
 
 Optional environment variables:
   QUESTIONS_FILE=path       Question JSON file. Default: prompts/semantic_understanding.json
-  MAX_NEW_TOKENS=number     Max generated tokens per answer. Default: 64
+  MAX_NEW_TOKENS=number     Max generated tokens per answer. Default: 32
   TEMPERATURE=number        Sampling temperature. Default: 0 for faster greedy decoding.
   TOP_P=number              Top-p sampling value. Default: 0.9
   TORCH_DTYPE=value         auto, float32, bfloat16, or float16. Default: float32
+  TORCH_NUM_THREADS=number  CPU threads used by torch. Default: 4
   MODELSCOPE_CACHE_DIR=dir  Optional ModelScope cache directory.
 
 Examples:
@@ -51,6 +53,7 @@ echo "[tests] Total model tests: ${#tests[@]}"
 echo "[tests] Max new tokens per answer: $MAX_NEW_TOKENS"
 echo "[tests] Temperature: $TEMPERATURE"
 echo "[tests] Torch dtype: $TORCH_DTYPE"
+echo "[tests] Torch CPU threads: $TORCH_NUM_THREADS"
 
 for item in "${tests[@]}"; do
   IFS="|" read -r model label tokens <<<"$item"
@@ -70,6 +73,7 @@ for item in "${tests[@]}"; do
     --temperature "$TEMPERATURE" \
     --top-p "$TOP_P" \
     --torch-dtype "$TORCH_DTYPE" \
+    --torch-num-threads "$TORCH_NUM_THREADS" \
     "${cache_args[@]}"
 done
 

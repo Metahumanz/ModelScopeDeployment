@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import re
 import sys
@@ -25,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--questions", default="prompts/semantic_understanding.json", help="Question JSON file.")
     parser.add_argument("--output-dir", default="results", help="Directory for generated result folders.")
     parser.add_argument("--cache-dir", default=None, help="Optional ModelScope cache directory.")
-    parser.add_argument("--max-new-tokens", type=int, default=64, help="Maximum generated tokens per answer.")
+    parser.add_argument("--max-new-tokens", type=int, default=32, help="Maximum generated tokens per answer.")
     parser.add_argument("--temperature", type=float, default=0, help="Sampling temperature. 0 uses faster greedy decoding.")
     parser.add_argument("--top-p", type=float, default=0.9, help="Top-p sampling value.")
     parser.add_argument(
@@ -33,6 +34,13 @@ def parse_args() -> argparse.Namespace:
         default="float32",
         choices=["auto", "float32", "bfloat16", "float16"],
         help="Torch dtype used when loading the model.",
+    )
+    parser.add_argument("--torch-num-threads", type=int, default=4, help="Torch CPU thread count. Use 0 to leave unchanged.")
+    parser.add_argument(
+        "--stream-output",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Stream generated tokens to the terminal while still saving complete results.",
     )
     return parser.parse_args()
 
@@ -79,13 +87,25 @@ def resolve_torch_dtype(torch_module: Any, value: str) -> Any:
     raise ValueError(f"Unsupported torch dtype: {value}")
 
 
-def load_model_and_tokenizer(model_path: str, torch_dtype_value: str):
+def configure_torch_runtime(torch_module: Any, num_threads: int) -> None:
+    if num_threads <= 0:
+        return
+    torch_module.set_num_threads(num_threads)
+    try:
+        torch_module.set_num_interop_threads(max(1, min(2, num_threads)))
+    except RuntimeError:
+        pass
+
+
+def load_model_and_tokenizer(model_path: str, torch_dtype_value: str, torch_num_threads: int):
     import torch
     import transformers
     from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 
+    configure_torch_runtime(torch, torch_num_threads)
     print(f"[load] torch: {torch.__version__}")
     print(f"[load] transformers: {transformers.__version__}")
+    print(f"[load] torch threads: {torch.get_num_threads()}")
     print(f"[load] tokenizer: {model_path}")
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
@@ -124,6 +144,7 @@ def build_prompt(tokenizer: Any, question: str) -> str:
 
 def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Namespace) -> str:
     import torch
+    from transformers import TextStreamer
 
     # Some remote-code models expose chat(), which handles tokenization itself.
     if hasattr(model, "chat"):
@@ -161,20 +182,34 @@ def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Na
     prompt = build_prompt(tokenizer, question)
     inputs = tokenizer(prompt, return_tensors="pt")
 
+    do_sample = args.temperature > 0
+    generation_config = copy.deepcopy(model.generation_config)
+    generation_config.do_sample = do_sample
+    if do_sample:
+        generation_config.temperature = args.temperature
+        generation_config.top_p = args.top_p
+    else:
+        generation_config.temperature = None
+        generation_config.top_p = None
+        generation_config.top_k = None
+
     generation_kwargs: dict[str, Any] = {
+        "generation_config": generation_config,
         "max_new_tokens": args.max_new_tokens,
-        "do_sample": args.temperature > 0,
         "pad_token_id": tokenizer.eos_token_id,
     }
-    if args.temperature > 0:
-        generation_kwargs["temperature"] = args.temperature
-        generation_kwargs["top_p"] = args.top_p
+    if args.stream_output:
+        generation_kwargs["streamer"] = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
 
     print(f"[eval] Generating answer with max_new_tokens={args.max_new_tokens}.")
+    if args.stream_output:
+        print("[answer] ", end="", flush=True)
     started_at = time.perf_counter()
     with torch.inference_mode():
         output_ids = model.generate(**inputs, **generation_kwargs)
     elapsed = time.perf_counter() - started_at
+    if args.stream_output:
+        print()
     print(f"[eval] Generation finished in {elapsed:.1f}s.")
 
     prompt_length = inputs["input_ids"].shape[-1]
@@ -232,16 +267,18 @@ def main() -> None:
     print(f"[eval] Loaded {len(questions)} questions from {args.questions}.")
     print("[eval] Resolving model path. This may download the model if it is not cached.")
     model_path = resolve_model(args.model, args.cache_dir)
-    print(f"[eval] Loading tokenizer and model into CPU memory with torch dtype: {args.torch_dtype}.")
+    print(
+        "[eval] Loading tokenizer and model into CPU memory "
+        f"with torch dtype: {args.torch_dtype}, torch threads: {args.torch_num_threads}."
+    )
     try:
-        tokenizer, model = load_model_and_tokenizer(model_path, args.torch_dtype)
+        tokenizer, model = load_model_and_tokenizer(model_path, args.torch_dtype, args.torch_num_threads)
     except ValueError as exc:
         message = str(exc)
         if "torch.load" in message and "torch to at least v2.6" in message:
             print("[error] This model uses legacy .bin weights, but the installed Transformers")
             print("[error] refuses to load .bin files with torch<2.6.")
-            print("[error] Run `bash setup_modelscope.sh` to install the pinned compatible")
-            print("[error] Transformers version from requirements.txt, then run this model script again.")
+            print("[error] Use a safetensors model or upgrade torch before running this legacy checkpoint.")
             sys.exit(2)
         raise
     print("[eval] Model is ready. Starting question answering.")
@@ -255,7 +292,8 @@ def main() -> None:
         print(question)
         print("-" * 80)
         answer = generate_answer(tokenizer, model, question, args)
-        print(answer)
+        if not args.stream_output:
+            print(answer)
 
         results.append(
             {

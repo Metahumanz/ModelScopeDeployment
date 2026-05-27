@@ -26,7 +26,7 @@ bash run_tests.sh
 - `qwen/Qwen2.5-1.5B-Instruct`
 - `Shanghai_AI_Laboratory/internlm2-chat-1_8b-sft`
 
-默认每题最多生成 128 个 token。想更快出结果可以降低生成长度：
+默认每题最多生成 64 个 token，并使用 `float32` 在 CPU 上加载模型，避免 `auto` dtype 在 CPU 上选到半精度后变慢。
 
 ```bash
 MAX_NEW_TOKENS=64 bash run_tests.sh
@@ -36,7 +36,8 @@ MAX_NEW_TOKENS=64 bash run_tests.sh
 
 ```bash
 QUESTIONS_FILE=prompts/semantic_understanding.json bash run_tests.sh
-MAX_NEW_TOKENS=64 bash run_tests.sh
+MAX_NEW_TOKENS=32 bash run_tests.sh
+TORCH_DTYPE=float32 bash run_tests.sh
 MODELSCOPE_CACHE_DIR=/mnt/workspace/.cache/modelscope bash run_tests.sh
 ```
 

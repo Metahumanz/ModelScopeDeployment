@@ -17,7 +17,7 @@
 | 主要依赖 | modelscope、transformers、accelerate、sentencepiece、tiktoken、einops |
 | 运行方式 | CPU 推理 |
 
-本项目将 `transformers` 固定到兼容 ModelScope `torch2.3.1` 镜像的版本，以提高复现实验时的稳定性。
+本项目在 CPU 环境中默认使用 `float32` 加载模型，并将每题默认生成长度控制在 64 个 token，以减少等待时间。
 
 ## 三、部署流程
 
@@ -55,10 +55,10 @@ bash run_tests.sh
 | Qwen2.5-1.5B-Instruct | 1.5B | 中文能力通常更稳定，仍可在 CPU 环境中尝试 |
 | InternLM2-Chat-1.8B-SFT | 1.8B | 另一个国产小模型，用于扩展横向比较 |
 
-默认每题最多生成 128 个 token。如果希望更快完成测试，可以执行：
+默认每题最多生成 64 个 token。如果希望更快完成测试，可以执行：
 
 ```bash
-MAX_NEW_TOKENS=64 bash run_tests.sh
+MAX_NEW_TOKENS=32 bash run_tests.sh
 ```
 
 ## 五、测试问题

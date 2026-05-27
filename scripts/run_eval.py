@@ -25,12 +25,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--questions", default="prompts/semantic_understanding.json", help="Question JSON file.")
     parser.add_argument("--output-dir", default="results", help="Directory for generated result folders.")
     parser.add_argument("--cache-dir", default=None, help="Optional ModelScope cache directory.")
-    parser.add_argument("--max-new-tokens", type=int, default=256, help="Maximum generated tokens per answer.")
-    parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature.")
+    parser.add_argument("--max-new-tokens", type=int, default=64, help="Maximum generated tokens per answer.")
+    parser.add_argument("--temperature", type=float, default=0, help="Sampling temperature. 0 uses faster greedy decoding.")
     parser.add_argument("--top-p", type=float, default=0.9, help="Top-p sampling value.")
     parser.add_argument(
         "--torch-dtype",
-        default="auto",
+        default="float32",
         choices=["auto", "float32", "bfloat16", "float16"],
         help="Torch dtype used when loading the model.",
     )
@@ -104,6 +104,8 @@ def load_model_and_tokenizer(model_path: str, torch_dtype_value: str):
         model = AutoModel.from_pretrained(model_path, **common_kwargs)
 
     model.eval()
+    if hasattr(model, "config"):
+        model.config.use_cache = True
     return tokenizer, model
 
 
@@ -168,8 +170,12 @@ def generate_answer(tokenizer: Any, model: Any, question: str, args: argparse.Na
         generation_kwargs["temperature"] = args.temperature
         generation_kwargs["top_p"] = args.top_p
 
-    with torch.no_grad():
+    print(f"[eval] Generating answer with max_new_tokens={args.max_new_tokens}.")
+    started_at = time.perf_counter()
+    with torch.inference_mode():
         output_ids = model.generate(**inputs, **generation_kwargs)
+    elapsed = time.perf_counter() - started_at
+    print(f"[eval] Generation finished in {elapsed:.1f}s.")
 
     prompt_length = inputs["input_ids"].shape[-1]
     answer_ids = output_ids[0][prompt_length:]
